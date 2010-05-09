@@ -1,79 +1,79 @@
 require 'spec_helper'
 
-if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
+# id | lft| rgt| title
+#========================================
+# 1  | 1  | 20 | - Electronics
+# 2  | 2  | 9  |   - Televisions
+# 3  | 3  | 4  |     - Tube
+# 4  | 5  | 6  |     - LCD
+# 5  | 7  | 8  |     - Plasma
+# 6  | 10 | 19 |   - Portable Electronics
+# 7  | 11 | 14 |     - MP3 Players
+# 8  | 12 | 13 |       - Flash
+# 9  | 15 | 16 |     - CD Players
+# 10 | 17 | 18 |     - 2 Way Radios
 
-  # id | lft| rgt| title
-  #========================================
-  # 1  | 1  | 20 | - Electronics
-  # 2  | 2  | 9  |   - Televisions
-  # 3  | 3  | 4  |     - Tube
-  # 4  | 5  | 6  |     - LCD
-  # 5  | 7  | 8  |     - Plasma
-  # 6  | 10 | 19 |   - Portable Electronics
-  # 7  | 11 | 14 |     - MP3 Players
-  # 8  | 12 | 13 |       - Flash
-  # 9  | 15 | 16 |     - CD Players
-  # 10 | 17 | 18 |     - 2 Way Radios
+# |  |  |      |  |     |  |        |  |  |  |  |           |  |  |            |  |              |  |  |
+# 1  2  3      4  5     6  7        8  9  10 11 12  Flash  13 14  15          16  17            18 19 20
+# |  |  | Tube |  | LCD |  | Plasma |  |  |  |  |___________|  |  | CD Players |  | 2 Way Radios |  |  |
+# |  |  |______|  |_____|  |________|  |  |  |                 |  |____________|  |______________|  |  |
+# |  |                                 |  |  |   MP3 Players   |                                    |  |
+# |  |          Televisions            |  |  |_________________|       Portable Electronics         |  |
+# |  |_________________________________|  |_________________________________________________________|  |
+# |                                                                                                    |
+# |                                       Electronics                                                  |
+# |____________________________________________________________________________________________________|
 
-  # |  |  |      |  |     |  |        |  |  |  |  |           |  |  |            |  |              |  |  |
-  # 1  2  3      4  5     6  7        8  9  10 11 12  Flash  13 14  15          16  17            18 19 20
-  # |  |  | Tube |  | LCD |  | Plasma |  |  |  |  |___________|  |  | CD Players |  | 2 Way Radios |  |  |
-  # |  |  |______|  |_____|  |________|  |  |  |                 |  |____________|  |______________|  |  |
-  # |  |                                 |  |  |   MP3 Players   |                                    |  |
-  # |  |          Televisions            |  |  |_________________|       Portable Electronics         |  |
-  # |  |_________________________________|  |_________________________________________________________|  |
-  # |                                                                                                    |
-  # |                                       Electronics                                                  |
-  # |____________________________________________________________________________________________________|
+describe DataMapper::Is::NestedSet do
+  before do
+    Object.send(:remove_const, :User) if defined?(User)
+    class ::User
+      include DataMapper::Resource
 
-  describe DataMapper::Is::NestedSet do
-    before do
-      Object.send(:remove_const, :User) if defined?(User)
-      class ::User
-        include DataMapper::Resource
+      property :id,   Serial
+      property :name, String
 
-        property :id,   Serial
-        property :name, String
-
-        has n, :categories
-      end
-
-      Object.send(:remove_const, :Category) if defined?(Category)
-      class ::Category
-        include DataMapper::Resource
-
-        property :id,         Serial
-        property :name,       String
-        property :class_name, Discriminator
-
-        belongs_to :user
-
-        is :nested_set, :scope => [:user_id]
-
-        def pos; [lft,rgt] end # convenience method only for speccing.
-      end
-
-      Object.send(:remove_const, :CustomCategory) if defined?(CustomCategory)
-      class ::CustomCategory < Category; end
-
-      DataMapper.auto_migrate!
-
-      DataMapper.repository do
-        @user  = User.create(:name => 'paul')
-        @other = User.create(:name => 'john')
-
-        electronics          = @user.categories.create(                                 :name => 'Electronics')
-        televisions          = @user.categories.create(:parent => electronics,          :name => 'Televisions')
-        tube                 = @user.categories.create(:parent => televisions,          :name => 'Tube')
-        lcd                  = @user.categories.create(:parent => televisions,          :name => 'LCD')
-        plasma               = @user.categories.create(:parent => televisions,          :name => 'Plasma')
-        portable_electronics = @user.categories.create(:parent => electronics,          :name => 'Portable Electronics')
-        mp3_players          = @user.categories.create(:parent => portable_electronics, :name => 'MP3 Players')
-        flash                = @user.categories.create(:parent => mp3_players,          :name => 'Flash')
-        cd_players           = @user.categories.create(:parent => portable_electronics, :name => 'CD Players')
-        two_way_radios       = @user.categories.create(:parent => portable_electronics, :name => '2 Way Radios')
-      end
+      has n, :categories
     end
+
+    Object.send(:remove_const, :Category) if defined?(Category)
+    class ::Category
+      include DataMapper::Resource
+
+      property :id,         Serial
+      property :name,       String
+      property :class_name, Discriminator
+
+      belongs_to :user
+
+      is :nested_set, :scope => [:user_id]
+
+      def pos; [lft,rgt] end # convenience method only for speccing.
+    end
+
+    Object.send(:remove_const, :CustomCategory) if defined?(CustomCategory)
+    class ::CustomCategory < Category; end
+
+    DataMapper.auto_migrate!
+
+    DataMapper.repository do
+      @user  = User.create(:name => 'paul')
+      @other = User.create(:name => 'john')
+
+      electronics          = @user.categories.create(                                 :name => 'Electronics')
+      televisions          = @user.categories.create(:parent => electronics,          :name => 'Televisions')
+      tube                 = @user.categories.create(:parent => televisions,          :name => 'Tube')
+      lcd                  = @user.categories.create(:parent => televisions,          :name => 'LCD')
+      plasma               = @user.categories.create(:parent => televisions,          :name => 'Plasma')
+      portable_electronics = @user.categories.create(:parent => electronics,          :name => 'Portable Electronics')
+      mp3_players          = @user.categories.create(:parent => portable_electronics, :name => 'MP3 Players')
+      flash                = @user.categories.create(:parent => mp3_players,          :name => 'Flash')
+      cd_players           = @user.categories.create(:parent => portable_electronics, :name => 'CD Players')
+      two_way_radios       = @user.categories.create(:parent => portable_electronics, :name => '2 Way Radios')
+    end
+  end
+
+  supported_by :sqlite, :mysql, :postgres do
 
     describe 'Class#rebuild_tree_from_set' do
       it 'should reset all parent_ids correctly' do
@@ -311,5 +311,7 @@ if HAS_SQLITE3 || HAS_MYSQL || HAS_POSTGRES
         end
       end
     end
+
   end
+
 end
