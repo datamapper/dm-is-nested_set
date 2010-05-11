@@ -218,10 +218,11 @@ module DataMapper
               # make a gap at position, that is as wide as this node
               model.base_model.adjust_gap!(nested_set, position - 1, gap)
 
-              # offset this node (and all its descendants) to the right position
-              lft_prop, rgt_prop = model.properties[:lft], model.properties[:rgt]
+              eager_props = model.properties.values_at(:lft, :rgt)
 
-              eager_load([ lft_prop, rgt_prop ]) # FIXME don't use @api private
+              # FIXME don't use @api private
+              # offset this node (and all its descendants) to the right position
+              eager_load(eager_props)
 
               old_position = lft
               offset = position - old_position
@@ -231,7 +232,8 @@ module DataMapper
               # close the gap this movement left behind.
               model.base_model.adjust_gap!(nested_set, old_position, -gap)
 
-              eager_load([ lft_prop, rgt_prop ]) # FIXME don't use @api private
+              # FIXME don't use @api private
+              eager_load(eager_props)
 
             else
               # make a gap where the new node can be inserted
