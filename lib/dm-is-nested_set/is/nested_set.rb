@@ -203,7 +203,7 @@ module DataMapper
             return false
           end
 
-          model.transaction do
+          transaction do
 
             ##
             # if this node is already positioned we need to move it, and close the gap it leaves behind etc
@@ -219,7 +219,10 @@ module DataMapper
               model.base_model.adjust_gap!(nested_set, position - 1, gap)
 
               # offset this node (and all its descendants) to the right position
-              eager_load([ :lft, :rgt ])
+              lft_prop, rgt_prop = model.properties[:lft], model.properties[:rgt]
+
+              eager_load([ lft_prop, rgt_prop ]) # FIXME don't use @api private
+
               old_position = lft
               offset = position - old_position
 
@@ -227,7 +230,9 @@ module DataMapper
 
               # close the gap this movement left behind.
               model.base_model.adjust_gap!(nested_set, old_position, -gap)
-              eager_load([ :lft, :rgt ])
+
+              eager_load([ lft_prop, rgt_prop ]) # FIXME don't use @api private
+
             else
               # make a gap where the new node can be inserted
               model.base_model.adjust_gap!(nested_set, position - 1, 2)
