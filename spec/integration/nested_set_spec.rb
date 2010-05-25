@@ -25,8 +25,7 @@ require 'spec_helper'
 # |____________________________________________________________________________________________________|
 
 describe DataMapper::Is::NestedSet do
-  before do
-    Object.send(:remove_const, :User) if defined?(User)
+  before :all do
     class ::User
       include DataMapper::Resource
 
@@ -36,48 +35,43 @@ describe DataMapper::Is::NestedSet do
       has n, :categories
     end
 
-    Object.send(:remove_const, :Category) if defined?(Category)
     class ::Category
       include DataMapper::Resource
 
-      property :id,         Serial
-      property :name,       String
-      property :class_name, Discriminator
+      property :id,   Serial
+      property :name, String
+      property :type, Discriminator
 
       belongs_to :user
 
-      is :nested_set, :scope => [:user_id]
+      is :nested_set, :scope => [ :user_id ]
 
       def pos; [lft,rgt] end # convenience method only for speccing.
-    end
-
-    Object.send(:remove_const, :CustomCategory) if defined?(CustomCategory)
-    class ::CustomCategory < Category; end
-
-    DataMapper.auto_migrate!
-
-    DataMapper.repository do
-      @user  = User.create(:name => 'paul')
-      @other = User.create(:name => 'john')
-
-      electronics          = @user.categories.create(                                 :name => 'Electronics')
-      televisions          = @user.categories.create(:parent => electronics,          :name => 'Televisions')
-      tube                 = @user.categories.create(:parent => televisions,          :name => 'Tube')
-      lcd                  = @user.categories.create(:parent => televisions,          :name => 'LCD')
-      plasma               = @user.categories.create(:parent => televisions,          :name => 'Plasma')
-      portable_electronics = @user.categories.create(:parent => electronics,          :name => 'Portable Electronics')
-      mp3_players          = @user.categories.create(:parent => portable_electronics, :name => 'MP3 Players')
-      flash                = @user.categories.create(:parent => mp3_players,          :name => 'Flash')
-      cd_players           = @user.categories.create(:parent => portable_electronics, :name => 'CD Players')
-      two_way_radios       = @user.categories.create(:parent => portable_electronics, :name => '2 Way Radios')
     end
   end
 
   supported_by :sqlite, :mysql, :postgres do
+    before do
+      DataMapper.repository do
+        @user  = User.create(:name => 'paul')
+        @other = User.create(:name => 'john')
+
+        electronics          = @user.categories.create(                                 :name => 'Electronics')
+        televisions          = @user.categories.create(:parent => electronics,          :name => 'Televisions')
+        tube                 = @user.categories.create(:parent => televisions,          :name => 'Tube')
+        lcd                  = @user.categories.create(:parent => televisions,          :name => 'LCD')
+        plasma               = @user.categories.create(:parent => televisions,          :name => 'Plasma')
+        portable_electronics = @user.categories.create(:parent => electronics,          :name => 'Portable Electronics')
+        mp3_players          = @user.categories.create(:parent => portable_electronics, :name => 'MP3 Players')
+        flash                = @user.categories.create(:parent => mp3_players,          :name => 'Flash')
+        cd_players           = @user.categories.create(:parent => portable_electronics, :name => 'CD Players')
+        two_way_radios       = @user.categories.create(:parent => portable_electronics, :name => '2 Way Radios')
+      end
+    end
 
     describe 'Class#rebuild_tree_from_set' do
       it 'should reset all parent_ids correctly' do
-        DataMapper.repository(:default) do
+        DataMapper.repository do
           plasma = Category.get(5)
           plasma.parent_id.should == 2
           plasma.ancestor.id.should == 2
@@ -97,7 +91,7 @@ describe DataMapper::Is::NestedSet do
 
     describe 'Class#leaves and #leaves' do
       it 'should return all nodes without descendants' do
-        DataMapper.repository(:default) do
+        DataMapper.repository do
           Category.leaves.length.should == 6
 
           r = Category.root
@@ -109,7 +103,7 @@ describe DataMapper::Is::NestedSet do
 
     describe '#ancestor, #ancestors and #self_and_ancestors' do
       it 'should return ancestors in an array' do
-        DataMapper.repository(:default) do |repos|
+        DataMapper.repository do
           c8 = Category.get(8)
           c8.ancestor.should == Category.get(7)
           c8.ancestor.should == c8.parent
@@ -122,7 +116,7 @@ describe DataMapper::Is::NestedSet do
 
     describe '#children' do
       it 'should return children of node' do
-        DataMapper.repository(:default) do |repos|
+        DataMapper.repository do
           r = Category.root
           r.children.length.should == 2
 
@@ -136,7 +130,7 @@ describe DataMapper::Is::NestedSet do
 
     describe '#descendants and #self_and_descendants' do
       it 'should return all subnodes of node' do
-        DataMapper.repository(:default) do
+        DataMapper.repository do
           r = Category.get(1)
           r.self_and_descendants.length.should == 10
           r.descendants.length.should == 9
@@ -151,7 +145,7 @@ describe DataMapper::Is::NestedSet do
 
     describe '#siblings and #self_and_siblings' do
       it 'should return all siblings of node' do
-        DataMapper.repository(:default) do
+        DataMapper.repository do
           r = Category.root
           r.self_and_siblings.length.should == 1
           r.descendants.length.should == 9
@@ -180,7 +174,7 @@ describe DataMapper::Is::NestedSet do
       # 10 | 17 | 18 |     - 2 Way Radios
 
       it 'should move items correctly with :higher / :highest / :lower / :lowest' do
-        DataMapper.repository(:default) do |repos|
+        DataMapper.repository do
 
           Category.get(4).pos.should == [5,6]
 
@@ -211,7 +205,7 @@ describe DataMapper::Is::NestedSet do
       end
 
       it 'should move items correctly with :indent / :outdent' do
-        DataMapper.repository(:default) do |repos|
+        DataMapper.repository do
 
           mp3_players = Category.get(7)
 
@@ -239,7 +233,7 @@ describe DataMapper::Is::NestedSet do
 
     describe 'moving objects with #move_* #and place_node_at' do
       it 'should set left/right when choosing a parent' do
-        DataMapper.repository(:default) do |repos|
+        DataMapper.repository do
           Category.auto_migrate!
 
           c1 = @user.categories.create(:name => 'New Electronics')
@@ -292,7 +286,7 @@ describe DataMapper::Is::NestedSet do
 
     describe 'scoping' do
       it 'should detach from list when changing scope' do
-        DataMapper.repository(:default) do |repos|
+        DataMapper.repository do
           plasma = Category.get(5)
           plasma.pos.should == [7,8]
           plasma.update(:user => @other)
@@ -303,7 +297,7 @@ describe DataMapper::Is::NestedSet do
 
     describe 'integrity' do
       it 'should detach object from list when deleted' do
-        DataMapper.repository(:default) do |repos|
+        DataMapper.repository do
           lcd = Category.get(4)
           lcd.pos.should == [5,6]
           Category.get(3).destroy
