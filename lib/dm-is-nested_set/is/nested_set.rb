@@ -203,46 +203,44 @@ module DataMapper
             return false
           end
 
-          transaction do
+          ##
+          # if this node is already positioned we need to move it, and close the gap it leaves behind etc
+          # otherwise we only need to open a gap in the set, and smash that buggar in
+          #
+          if lft && rgt
+            # raise exception if node is trying to move into one of its descendants (infinite loop, spacetime will warp)
+            raise RecursiveNestingError if position > lft && position < rgt
+            # find out how wide this node is, as we need to make a gap large enough for it to fit in
+            gap = rgt - lft + 1
 
-            ##
-            # if this node is already positioned we need to move it, and close the gap it leaves behind etc
-            # otherwise we only need to open a gap in the set, and smash that buggar in
-            #
-            if lft && rgt
-              # raise exception if node is trying to move into one of its descendants (infinite loop, spacetime will warp)
-              raise RecursiveNestingError if position > lft && position < rgt
-              # find out how wide this node is, as we need to make a gap large enough for it to fit in
-              gap = rgt - lft + 1
+            # make a gap at position, that is as wide as this node
+            model.base_model.adjust_gap!(nested_set, position - 1, gap)
 
-              # make a gap at position, that is as wide as this node
-              model.base_model.adjust_gap!(nested_set, position - 1, gap)
+            eager_props = model.properties.values_at(:lft, :rgt)
 
-              eager_props = model.properties.values_at(:lft, :rgt)
+            # FIXME don't use @api private
+            # offset this node (and all its descendants) to the right position
+            eager_load(eager_props)
 
-              # FIXME don't use @api private
-              # offset this node (and all its descendants) to the right position
-              eager_load(eager_props)
+            old_position = lft
+            offset = position - old_position
 
-              old_position = lft
-              offset = position - old_position
+            nested_set.all(:rgt => lft..rgt).adjust!({ :lft => offset, :rgt => offset }, true)
 
-              nested_set.all(:rgt => lft..rgt).adjust!({ :lft => offset, :rgt => offset }, true)
+            # close the gap this movement left behind.
+            model.base_model.adjust_gap!(nested_set, old_position, -gap)
 
-              # close the gap this movement left behind.
-              model.base_model.adjust_gap!(nested_set, old_position, -gap)
+            # FIXME don't use @api private
+            eager_load(eager_props)
 
-              # FIXME don't use @api private
-              eager_load(eager_props)
-
-            else
-              # make a gap where the new node can be inserted
-              model.base_model.adjust_gap!(nested_set, position - 1, 2)
-              # set the position fields
-              self.lft, self.rgt = position, position + 1
-            end
-            self.parent = ancestor
+          else
+            # make a gap where the new node can be inserted
+            model.base_model.adjust_gap!(nested_set, position - 1, 2)
+            # set the position fields
+            self.lft, self.rgt = position, position + 1
           end
+
+          self.parent = ancestor
         end
 
         ##
@@ -371,10 +369,13 @@ module DataMapper
           self_and_siblings.detect { |v| v.lft == rgt + 1 }
         end
 
-       private
+      private
+
         def detach
-          offset = lft - rgt - 1
-          model.base_model.adjust_gap!(nested_set, rgt, offset)
+          unless lft.nil? || rgt.nil?
+            offset = lft - rgt - 1
+            model.base_model.adjust_gap!(nested_set, rgt, offset)
+          end
           self.lft, self.rgt = nil, nil
         end
 
