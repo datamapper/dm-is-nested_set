@@ -326,8 +326,6 @@ module DataMapper
         ##
         # check if this node is a leaf (does not have subnodes).
         # use this instead ofdescendants.empty?
-        #
-        # @par
         def leaf?
           rgt - lft == 1
         end
