@@ -291,7 +291,7 @@ module DataMapper
         # check if this node is a root
         #
         def root?
-          !parent && !new_record?
+          !parent && !new?
         end
 
         ##
