@@ -70,7 +70,8 @@ module DataMapper
         def root
           # TODO scoping
           # what should this return if there is a scope? always false, or node if there is only one?
-          roots.length > 1 ? false : first(nested_set_parent.zip([]).to_hash)
+          args = DataMapper::Ext::Array.to_hash(nested_set_parent.zip([]))
+          roots.length > 1 ? false : first(args)
         end
 
         ##
@@ -79,7 +80,8 @@ module DataMapper
         def roots
           # TODO scoping
           # TODO supply filtering-option?
-          all(nested_set_parent.zip([]).to_hash)
+          args = DataMapper::Ext::Array.to_hash(nested_set_parent.zip([]))
+          all(args)
         end
 
         ##
@@ -115,7 +117,8 @@ module DataMapper
         #
         # @private
         def nested_set_scope
-          model.base_model.nested_set_scope.map{ |p| [ p, attribute_get(p) ] }.to_hash
+          pairs = model.base_model.nested_set_scope.map{ |p| [ p, attribute_get(p) ] }
+          DataMapper::Ext::Array.to_hash(pairs)
         end
 
         ##
@@ -123,7 +126,10 @@ module DataMapper
         # @private
         def original_nested_set_scope
           # TODO commit
-          model.base_model.nested_set_scope.map{ |p| [ p, (property = properties[p]) && original_attributes.key?(property) ? original_attributes[property] : attribute_get(p) ] }.to_hash
+          pairs = model.base_model.nested_set_scope.map{ |p|
+            [ p, (property = properties[p]) && original_attributes.key?(property) ? original_attributes[property] : attribute_get(p) ]
+          }
+          DataMapper::Ext::Array.to_hash(pairs)
         end
 
         ##
