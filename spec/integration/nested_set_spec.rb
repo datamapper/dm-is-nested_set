@@ -72,7 +72,7 @@ describe DataMapper::Is::NestedSet do
     describe 'Class#rebuild_tree_from_set' do
       it 'should reset all parent_ids correctly' do
         DataMapper.repository do
-          plasma = Category.get(5)
+          plasma = Category.first(:name => 'Plasma')
           plasma.parent_id.should == 2
           plasma.ancestor.id.should == 2
           plasma.pos.should == [7,8]
@@ -104,8 +104,8 @@ describe DataMapper::Is::NestedSet do
     describe '#ancestor, #ancestors and #self_and_ancestors' do
       it 'should return ancestors in an array' do
         DataMapper.repository do
-          c8 = Category.get(8)
-          c8.ancestor.should == Category.get(7)
+          c8 = Category.first(:name => 'Flash')
+          c8.ancestor.should == Category.first(:name => 'MP3 Players')
           c8.ancestor.should == c8.parent
 
           c8.ancestors.map{|a|a.name}.should == ['Electronics','Portable Electronics','MP3 Players']
@@ -131,7 +131,7 @@ describe DataMapper::Is::NestedSet do
     describe '#descendants and #self_and_descendants' do
       it 'should return all subnodes of node' do
         DataMapper.repository do
-          r = Category.get(1)
+          r = Category.first(:name => 'Electronics')
           r.self_and_descendants.length.should == 10
           r.descendants.length.should == 9
           r.name.should == 'Electronics'
@@ -176,30 +176,30 @@ describe DataMapper::Is::NestedSet do
       it 'should move items correctly with :higher / :highest / :lower / :lowest' do
         DataMapper.repository do
 
-          Category.get(4).pos.should == [5,6]
+          Category.first(:name => 'LCD').pos.should == [5,6]
 
-          Category.get(4).move(:above => Category.get(3))
-          Category.get(4).pos.should == [3,4]
+          Category.first(:name => 'LCD').move(:above => Category.first(:name => 'Tube'))
+          Category.first(:name => 'LCD').pos.should == [3,4]
 
-          Category.get(4).move(:higher).should == false
-          Category.get(4).pos.should == [3,4]
-          Category.get(3).pos.should == [5,6]
-          Category.get(4).right_sibling.should == Category.get(3)
+          Category.first(:name => 'LCD').move(:higher).should == false
+          Category.first(:name => 'LCD').pos.should == [3,4]
+          Category.first(:name => 'Tube').pos.should == [5,6]
+          Category.first(:name => 'LCD').right_sibling.should == Category.first(:name => 'Tube')
 
-          Category.get(4).move(:lower)
-          Category.get(4).pos.should == [5,6]
-          Category.get(4).left_sibling.should == Category.get(3)
-          Category.get(4).right_sibling.should == Category.get(5)
+          Category.first(:name => 'LCD').move(:lower)
+          Category.first(:name => 'LCD').pos.should == [5,6]
+          Category.first(:name => 'LCD').left_sibling.should == Category.first(:name => 'Tube')
+          Category.first(:name => 'LCD').right_sibling.should == Category.first(:name => 'Plasma')
 
-          Category.get(4).move(:highest)
-          Category.get(4).pos.should == [3,4]
-          Category.get(4).move(:higher).should == false
+          Category.first(:name => 'LCD').move(:highest)
+          Category.first(:name => 'LCD').pos.should == [3,4]
+          Category.first(:name => 'LCD').move(:higher).should == false
 
-          Category.get(4).move(:lowest)
-          Category.get(4).pos.should == [7,8]
-          Category.get(4).left_sibling.should == Category.get(5)
+          Category.first(:name => 'LCD').move(:lowest)
+          Category.first(:name => 'LCD').pos.should == [7,8]
+          Category.first(:name => 'LCD').left_sibling.should == Category.first(:name => 'Plasma')
 
-          Category.get(4).move(:higher) # should reset the tree to how it was
+          Category.first(:name => 'LCD').move(:higher) # should reset the tree to how it was
 
         end
       end
@@ -207,10 +207,10 @@ describe DataMapper::Is::NestedSet do
       it 'should move items correctly with :indent / :outdent' do
         DataMapper.repository do
 
-          mp3_players = Category.get(7)
+          mp3_players = Category.first(:name => 'MP3 Players')
 
-          portable_electronics = Category.get(6)
-          televisions = Category.get(2)
+          portable_electronics = Category.first(:name => 'Portable Electronics')
+          televisions = Category.first(:name => 'Televisions')
 
           mp3_players.pos.should == [11,14]
           #mp3_players.descendants.length.should == 1
@@ -287,7 +287,7 @@ describe DataMapper::Is::NestedSet do
     describe 'scoping' do
       it 'should detach from list when changing scope' do
         DataMapper.repository do
-          plasma = Category.get(5)
+          plasma = Category.first(:name => 'Plasma')
           plasma.pos.should == [7,8]
           plasma.update(:user => @other)
           plasma.pos.should == [1,2]
@@ -298,9 +298,9 @@ describe DataMapper::Is::NestedSet do
     describe 'integrity' do
       it 'should detach object from list when deleted' do
         DataMapper.repository do
-          lcd = Category.get(4)
+          lcd = Category.first(:name => 'LCD')
           lcd.pos.should == [5,6]
-          Category.get(3).destroy
+          Category.first(:name => 'Tube').destroy
           lcd.pos.should == [3,4]
         end
       end
